@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medication Reminder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* CSS styles are embedded here */
+        :root {
+            --primary-bg-light: #f4f7f9;
+            --secondary-bg-light: #ffffff;
+            --primary-text-light: #1d1d1f;
+            --secondary-text-light: #6e6e73;
+            --accent-color: #007aff;
+            --border-color-light: #d2d2d7;
+            --success-color: #34c759;
+            --danger-color: #ff3b30;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --power-med-color-light: #ff9500;
+            --power-med-bg-light: #fff3e0;
+            --white-med-color-light: #34aadc;
+            --white-med-bg-light: #eaf8ff;
+
+            --primary-bg-dark: #1c1c1e;
+            --secondary-bg-dark: #2c2c2e;
+            --primary-text-dark: #f5f5f7;
+            --secondary-text-dark: #8e8e93;
+            --border-color-dark: #444446;
+            --power-med-color-dark: #ff9f0a;
+            --power-med-bg-dark: #3a2e1c;
+            --white-med-color-dark: #5ac8fa;
+            --white-med-bg-dark: #1c323a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--primary-bg-light);
+            color: var(--primary-text-light);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark-mode {
+            background-color: var(--primary-bg-dark);
+            color: var(--primary-text-dark);
+        }
+
+        .app-container { max-width: 900px; margin: 2rem auto; padding: 1rem; }
+
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color-light); }
+        body.dark-mode nav { border-bottom-color: var(--border-color-dark); }
+        nav h1 { font-size: 1.8rem; font-weight: 600; }
+        .nav-controls { display: flex; gap: 1rem; }
+
+        button, input {
+            -webkit-tap-highlight-color: transparent; /* Removes the grey tap highlight on iOS */
+        }
+
+        button { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; background-color: var(--secondary-bg-light); color: var(--accent-color); border: 1px solid var(--accent-color); }
+        button.primary-action { background-color: var(--accent-color); color: white; border: none; }
+        body.dark-mode button { background-color: var(--secondary-bg-dark); color: var(--accent-color); }
+        
+        body.dark-mode button.primary-action { 
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        button:hover { background-color: #e9e9eb; }
+        button.primary-action:hover { background-color: #006ae1; }
+        body.dark-mode button:hover { background-color: #3a3a3c; }
+        button:active { transform: scale(0.97); }
+        #theme-switcher-btn { width: 44px; text-align: center; padding: 0.6rem; }
+
+        main { padding-top: 2rem; }
+        .hidden { display: none !important; }
+
+        #initial-dose-selection-view { background-color: var(--secondary-bg-light); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
+        body.dark-mode #initial-dose-selection-view { background-color: var(--secondary-bg-dark); }
+        #initial-dose-selection-view h2 { margin-bottom: 1.5rem; text-align: center; }
+        .dose-count-setup { margin-bottom: 2rem; }
+        .form-group { text-align: left; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--secondary-text-light); }
+        body.dark-mode .form-group label { color: var(--primary-text-dark); }
+        .form-group input { width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color-light); font-size: 1rem; }
+        body.dark-mode .form-group input { background-color: #3a3a3c; border-color: var(--border-color-dark); color: var(--primary-text-dark); }
+        
+        .hour-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 1rem; }
+        .hour-item { background-color: var(--secondary-bg-light); border: 1px solid var(--border-color-light); border-radius: 10px; padding: 1rem; text-align: center; font-size: 1.2rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow); }
+        body.dark-mode .hour-item { background-color: var(--secondary-bg-dark); border-color: var(--border-color-dark); }
+        .hour-item:hover { transform: translateY(-3px); background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
+
+        #schedule-view-container { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+        #schedule-view h2 { margin-bottom: 1.5rem; color: var(--secondary-text-light); font-weight: 500; }
+        body.dark-mode #schedule-view h2 { color: var(--secondary-text-dark); }
+        #schedule-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+
+        #schedule-list { list-style: none; margin-bottom: 2rem; }
+        .schedule-item { display: flex; align-items: center; background-color: var(--secondary-bg-light); padding: 1.2rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: var(--shadow); transition: all 0.3s ease; border-left: 5px solid transparent; }
+        .schedule-item.power-med { border-left-color: var(--power-med-color-light); background-color: var(--power-med-bg-light); }
+        .schedule-item.white-med { border-left-color: var(--white-med-color-light); background-color: var(--white-med-bg-light); }
+        body.dark-mode .schedule-item { background-color: var(--secondary-bg-dark); border-color: var(--border-color-dark); }
+        body.dark-mode .schedule-item.power-med { border-left-color: var(--power-med-color-dark); background-color: var(--power-med-bg-dark); }
+        body.dark-mode .schedule-item.white-med { border-left-color: var(--white-med-color-dark); background-color: var(--white-med-bg-dark); }
+        .schedule-item.taken { opacity: 0.6; background-color: #e8f5e9; }
+        body.dark-mode .schedule-item.taken { background-color: #2c3b2d; }
+        .schedule-item.taken .dose-details { text-decoration: line-through; color: var(--secondary-text-light); }
+        body.dark-mode .schedule-item.taken .dose-details { color: var(--secondary-text-dark); }
+        
+        .checkbox-container { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color-light); display: flex; justify-content: center; align-items: center; cursor: pointer; margin-right: 1rem; flex-shrink: 0; transition: all 0.2s ease; }
+        body.dark-mode .checkbox-container { border-color: var(--border-color-dark); }
+        .checkbox-container.checked { background-color: var(--success-color); border-color: var(--success-color); }
+        .checkbox-container .fa-check { color: white; font-size: 0.8rem; opacity: 0; transition: opacity 0.2s ease; }
+        .checkbox-container.checked .fa-check { opacity: 1; }
+        
+        .dose-details { flex-grow: 1; }
+        .time-display { display: flex; align-items: center; gap: 0.5rem; }
+        .time-text { font-size: 1.5rem; font-weight: 500; }
+        .edit-time-btn { font-size: 0.9rem; color: var(--secondary-text-light); cursor: pointer; opacity: 0.5; transition: opacity 0.2s; }
+        .schedule-item:hover .edit-time-btn { opacity: 1; }
+        .dose-name { font-size: 1rem; color: var(--secondary-text-light); cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background-color 0.2s; }
+        .schedule-item.power-med .dose-name { color: var(--power-med-color-light); font-weight: 500; }
+        .schedule-item.white-med .dose-name { color: var(--white-med-color-light); font-weight: 500; }
+        body.dark-mode .schedule-item.power-med .dose-name { color: var(--power-med-color-dark); }
+        body.dark-mode .schedule-item.white-med .dose-name { color: var(--white-med-color-dark); }
+        .dose-name:hover { background-color: #e9e9eb; }
+        body.dark-mode .dose-name { color: var(--secondary-text-dark); }
+        body.dark-mode .dose-name:hover { background-color: #3a3a3c; }
+        .dose-name-input, .time-edit-input { font-size: 1rem; border: none; background-color: #e9e9eb; padding: 2px 4px; border-radius: 4px; width: 100%; font-family: inherit; }
+        .time-edit-input { font-size: 1.5rem; font-weight: 500; padding: 0; max-width: 150px; }
+        
+        .missed-btn { background: none; border: none; color: var(--danger-color); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; transition: transform 0.2s ease; }
+        .missed-btn:hover { transform: scale(1.2); }
+        
+        .meal-med-form { background-color: var(--secondary-bg-light); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); }
+        body.dark-mode .meal-med-form { background-color: var(--secondary-bg-dark); }
+        .meal-med-form h3 { font-weight: 500; margin-bottom: 0.5rem; grid-column: 1 / -1; }
+        .meal-med-form input { padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color-light); font-family: inherit; font-size: 1rem; width: 100%; }
+        body.dark-mode .meal-med-form input { background-color: #3a3a3c; border-color: var(--border-color-dark); color: var(--primary-text-dark); }
+        .meal-med-form button { background-color: var(--accent-color); color: white; border: none; grid-column: 1 / -1; margin-top: 0.5rem; width: 100%;}
+        .meal-med-form .form-group { margin-bottom: 1rem; }
+
+        /* === MOBILE FRIENDLY STYLES === */
+        @media (max-width: 768px) {
+            body {
+                font-size: 15px; /* Adjust base font size for better readability */
+            }
+            .app-container {
+                margin: 0.5rem auto;
+                padding: 0.5rem;
+            }
+            nav h1 {
+                font-size: 1.5rem;
+            }
+            /* Main layout fix: stack columns on mobile */
+            #schedule-view-container {
+                grid-template-columns: 1fr;
+            }
+            .schedule-item, .meal-med-form, #initial-dose-selection-view {
+                padding: 1rem;
+            }
+            .time-text {
+                font-size: 1.3rem;
+            }
+            .dose-name {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav>
+            <h1>Med Minder</h1>
+            <div class="nav-controls">
+                <button id="reset-btn">Reset</button>
+                <button id="theme-switcher-btn"><i class="fas fa-moon"></i></button>
+            </div>
+        </nav>
+        <main id="main-content">
+            <div id="initial-dose-selection-view" class="hidden">
+                <h2>Setup Your Schedule</h2>
+                <div class="dose-count-setup form-group">
+                    <label for="dose-count">How many Steroid doses per day?</label>
+                    <input type="number" id="dose-count" value="5" min="1">
+                </div>
+                <h2>Select your first dose time:</h2>
+                <div id="hour-selection-list" class="hour-list"></div>
+            </div>
+            <div id="schedule-view-container" class="hidden">
+                <div id="schedule-view">
+                    <h2>Today's Schedule</h2>
+                    <ul id="schedule-list"></ul>
+                </div>
+                <div id="schedule-sidebar">
+                    <div class="meal-med-form">
+                        <h3>Lunch Time Med</h3>
+                        <div class="form-group">
+                            <label for="lunch-time">When did you eat lunch?</label>
+                            <input type="time" id="lunch-time">
+                        </div>
+                        <button id="add-lunch-med-btn" class="primary-action">Add White Med</button>
+                    </div>
+                     <div class="meal-med-form">
+                        <h3>Dinner Time Med</h3>
+                        <div class="form-group">
+                            <label for="dinner-time">When did you eat dinner?</label>
+                            <input type="time" id="dinner-time">
+                        </div>
+                        <button id="add-dinner-med-btn" class="primary-action">Add White Med</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialDoseSelectionView = document.getElementById('initial-dose-selection-view');
+            const scheduleViewContainer = document.getElementById('schedule-view-container');
+            const scheduleList = document.getElementById('schedule-list');
+            const themeSwitcherBtn = document.getElementById('theme-switcher-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const doseCountInput = document.getElementById('dose-count');
+            const hourSelectionList = document.getElementById('hour-selection-list');
+            const addDinnerMedBtn = document.getElementById('add-dinner-med-btn');
+            const dinnerTimeInput = document.getElementById('dinner-time');
+            const addLunchMedBtn = document.getElementById('add-lunch-med-btn');
+            const lunchTimeInput = document.getElementById('lunch-time');
+            const body = document.body;
+            let schedule = [];
+
+            const saveSchedule = () => localStorage.setItem('medSchedule', JSON.stringify(schedule));
+            const loadSchedule = () => {
+                const saved = localStorage.getItem('medSchedule');
+                if (saved) { schedule = JSON.parse(saved); return true; }
+                return false;
+            };
+            const saveTheme = (theme) => localStorage.setItem('medTheme', theme);
+            const loadTheme = () => {
+                const theme = localStorage.getItem('medTheme');
+                if (theme === 'dark') {
+                    body.classList.add('dark-mode');
+                    themeSwitcherBtn.innerHTML = '<i class="fas fa-sun"></i>';
+                } else {
+                    body.classList.remove('dark-mode');
+                    themeSwitcherBtn.innerHTML = '<i class="fas fa-moon"></i>';
+                }
+            };
+
+            const renderSchedule = () => {
+                schedule.sort((a, b) => a.time.localeCompare(b.time));
+                scheduleList.innerHTML = '';
+                schedule.forEach(item => {
+                    const li = document.createElement('li');
+                    const classList = ['schedule-item'];
+                    if (item.taken) classList.push('taken');
+                    if (item.type === 'power') classList.push('power-med');
+                    if (item.type === 'dinner' || item.type === 'lunch') classList.push('white-med');
+                    
+                    li.className = classList.join(' ');
+                    li.dataset.id = item.id;
+
+                    const [hour, minute] = item.time.split(':');
+                    const date = new Date(); date.setHours(hour, minute);
+                    const formattedTime = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    li.innerHTML = `
+                        <div class="checkbox-container ${item.taken ? 'checked' : ''}"><i class="fas fa-check"></i></div>
+                        <div class="dose-details">
+                            <div class="time-display">
+                                <span class="time-text">${formattedTime}</span>
+                                <i class="fas fa-pencil-alt edit-time-btn"></i>
+                            </div>
+                           <span class="dose-name">${item.name}</span>
+                        </div>
+                        <button class="missed-btn"><i class="fas fa-times"></i></button>`;
+                    scheduleList.appendChild(li);
+                });
+            };
+
+            const recalculatePowerMeds = () => {
+                schedule = schedule.filter(d => d.type !== 'power');
+                const mainDoses = schedule.filter(d => d.type === 'steroid');
+                if (mainDoses.length === 0) return;
+                mainDoses.sort((a, b) => a.time.localeCompare(b.time));
+                const firstDose = mainDoses[0];
+                const lastDose = mainDoses[mainDoses.length - 1];
+                
+                const [firstHour, firstMin] = firstDose.time.split(':');
+                const firstPowerTime = new Date(); firstPowerTime.setHours(parseInt(firstHour) + 1, firstMin);
+                const [lastHour, lastMin] = lastDose.time.split(':');
+                const lastPowerTime = new Date(); lastPowerTime.setHours(lastHour, parseInt(lastMin) + 30);
+
+                schedule.push({ id: Date.now() + 1000, time: `${String(firstPowerTime.getHours()).padStart(2, '0')}:${String(firstPowerTime.getMinutes()).padStart(2, '0')}`, taken: false, name: "Power Med", type: "power" });
+                schedule.push({ id: Date.now() + 2000, time: `${String(lastPowerTime.getHours()).padStart(2, '0')}:${String(lastPowerTime.getMinutes()).padStart(2, '0')}`, taken: false, name: "Power Med", type: "power" });
+            };
+
+            const generateInitialSchedule = (doseCount, startHour) => {
+                schedule = [];
+                for (let i = 0; i < doseCount; i++) {
+                    const doseTime = new Date();
+                    doseTime.setHours(startHour + (i * 3), 0);
+                    schedule.push({ id: Date.now() + i, time: `${String(doseTime.getHours()).padStart(2, '0')}:00`, taken: false, name: "Steroid", type: "steroid" });
+                }
+                recalculatePowerMeds();
+                saveSchedule();
+                renderSchedule();
+                showInitialDoseSelectionView(false);
+            };
+
+            const handleMissedDose = () => {
+                const takenDoses = schedule.filter(d => d.taken);
+                const otherIndependentDoses = schedule.filter(d => d.type !== 'steroid' && !d.taken);
+                const untakenSteroidDoses = schedule.filter(d => !d.taken && d.type === 'steroid');
+                if (untakenSteroidDoses.length === 0) return;
+
+                const rescheduled = rescheduleCore(untakenSteroidDoses, new Date());
+                schedule = [...takenDoses, ...otherIndependentDoses, ...rescheduled];
+                recalculatePowerMeds();
+                saveSchedule();
+                renderSchedule();
+            };
+
+            const updateAndReschedule = (editedDoseId, newTime) => {
+                schedule.sort((a, b) => a.time.localeCompare(b.time));
+                const editedIndex = schedule.findIndex(d => d.id === editedDoseId);
+                if (editedIndex === -1) return;
+                const editedDose = schedule[editedIndex];
+                editedDose.time = newTime;
+                editedDose.taken = true;
+                const [newHour, newMinute] = newTime.split(':');
+                const baseTime = new Date(); baseTime.setHours(newHour, newMinute, 0, 0);
+
+                const subsequentUntaken = schedule.filter((dose, index) => index > editedIndex && !dose.taken && dose.type === 'steroid');
+                const otherDoses = schedule.filter(dose => !subsequentUntaken.includes(dose));
+                const rescheduled = rescheduleCore(subsequentUntaken, baseTime, true);
+                schedule = [...otherDoses, ...rescheduled];
+                recalculatePowerMeds();
+                saveSchedule();
+                renderSchedule();
+            };
+
+            const rescheduleCore = (dosesToPlan, baseTime, isCascading = false) => {
+                if (dosesToPlan.length === 0) return dosesToPlan;
+                const standardIntervalMs = 3 * 60 * 60 * 1000;
+                let intervalMs = standardIntervalMs;
+                const firstDoseOffset = isCascading ? standardIntervalMs : 0;
+                const potentialEndTime = new Date(baseTime.getTime() + firstDoseOffset + (dosesToPlan.length - 1) * standardIntervalMs);
+
+                if (potentialEndTime.getDate() > baseTime.getDate()) {
+                    const midnight = new Date(baseTime); midnight.setHours(23, 59, 59, 999);
+                    const msUntilMidnight = midnight.getTime() - baseTime.getTime();
+                    const numDoses = dosesToPlan.length;
+
+                    if (!isCascading) {
+                        intervalMs = numDoses > 1 ? msUntilMidnight / (numDoses - 1) : 0;
+                    } else {
+                        intervalMs = numDoses > 0 ? msUntilMidnight / numDoses : 0;
+                    }
+                }
+                dosesToPlan.forEach((dose, index) => {
+                    const offset = isCascading ? (index + 1) * intervalMs : index * intervalMs;
+                    const futureTime = new Date(baseTime.getTime() + offset);
+                    dose.time = `${String(futureTime.getHours()).padStart(2, '0')}:${String(futureTime.getMinutes()).padStart(2, '0')}`;
+                });
+                return dosesToPlan;
+            };
+            
+            const showInitialDoseSelectionView = (show = true) => {
+                if(show) {
+                    initialDoseSelectionView.classList.remove('hidden');
+                    scheduleViewContainer.classList.add('hidden');
+                } else {
+                    initialDoseSelectionView.classList.add('hidden');
+                    scheduleViewContainer.classList.remove('hidden');
+                }
+            };
+
+            const init = () => {
+                hourSelectionList.innerHTML = '';
+                for (let i = 6; i <= 16; i++) { // 6 AM to 4 PM
+                    const date = new Date(); date.setHours(i, 0);
+                    const timeString = date.toLocaleTimeString([], { hour: 'numeric' });
+                    const hourItem = document.createElement('div');
+                    hourItem.className = 'hour-item';
+                    hourItem.textContent = timeString;
+                    hourItem.dataset.hour = i;
+                    hourItem.addEventListener('click', () => {
+                        const doseCount = parseInt(doseCountInput.value);
+                        if (doseCount > 0) { generateInitialSchedule(doseCount, i); }
+                    });
+                    hourSelectionList.appendChild(hourItem);
+                }
+                if (loadSchedule() && schedule.length > 0) { renderSchedule(); showInitialDoseSelectionView(false); } 
+                else { showInitialDoseSelectionView(true); }
+                loadTheme();
+            };
+
+            scheduleList.addEventListener('click', (e) => {
+                const target = e.target;
+                const parentItem = target.closest('.schedule-item');
+                if (!parentItem) return;
+                const id = parseInt(parentItem.dataset.id);
+                const dose = schedule.find(d => d.id === id);
+                if (!dose) return;
+
+                if (target.closest('.checkbox-container')) {
+                    dose.taken = !dose.taken;
+                    saveSchedule();
+                    renderSchedule();
+                } else if (target.closest('.missed-btn')) {
+                    handleMissedDose();
+                } else if (target.classList.contains('edit-time-btn')) {
+                    const timeDisplay = parentItem.querySelector('.time-display');
+                    const input = document.createElement('input');
+                    input.type = 'time'; input.value = dose.time; input.className = 'time-edit-input';
+                    timeDisplay.style.display = 'none';
+                    timeDisplay.parentElement.insertBefore(input, timeDisplay.nextSibling);
+                    input.focus();
+                    const saveTime = () => {
+                        if (dose.type === 'steroid') { updateAndReschedule(id, input.value); } 
+                        else { dose.time = input.value; saveSchedule(); renderSchedule(); }
+                    };
+                    input.addEventListener('blur', saveTime);
+                    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
+                } else if (target.classList.contains('dose-name')) {
+                    if (dose.type === 'power' || dose.type === 'dinner' || dose.type === 'lunch') return;
+                    const input = document.createElement('input');
+                    input.type = 'text'; input.value = dose.name; input.className = 'dose-name-input';
+                    target.replaceWith(input);
+                    input.focus();
+                    const saveName = () => {
+                        dose.name = input.value || "Untitled"; saveSchedule(); renderSchedule();
+                    };
+                    input.addEventListener('blur', saveName);
+                    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
+                }
+            });
+
+            themeSwitcherBtn.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                if (body.classList.contains('dark-mode')) {
+                    themeSwitcherBtn.innerHTML = '<i class="fas fa-sun"></i>'; saveTheme('dark');
+                } else {
+                    themeSwitcherBtn.innerHTML = '<i class="fas fa-moon"></i>'; saveTheme('light');
+                }
+            });
+            resetBtn.addEventListener('click', () => showInitialDoseSelectionView(true));
+            
+            addDinnerMedBtn.addEventListener('click', () => {
+                const time = dinnerTimeInput.value;
+                if (time) {
+                    schedule = schedule.filter(d => d.type !== 'dinner');
+                    schedule.push({ id: Date.now(), time, taken: false, name: "White Med", type: "dinner" });
+                    saveSchedule(); renderSchedule();
+                }
+            });
+            addLunchMedBtn.addEventListener('click', () => {
+                const time = lunchTimeInput.value;
+                if (time) {
+                    schedule = schedule.filter(d => d.type !== 'lunch');
+                    schedule.push({ id: Date.now(), time, taken: false, name: "White Med", type: "lunch" });
+                    saveSchedule(); renderSchedule();
+                }
+            });
+            init();
+        });
+    </script>
+</body>
+</html>
