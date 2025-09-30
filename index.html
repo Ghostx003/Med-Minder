@@ -62,17 +62,26 @@
         body.dark-mode button:hover { background-color: #3a3a3c; }
         button:active { transform: scale(0.97); }
         
-        /* Style for disabled buttons */
         button:disabled {
-            background-color: #d2d2d7;
-            border-color: #d2d2d7;
-            color: #8e8e93;
-            cursor: not-allowed;
+            background-color: #d2d2d7 !important;
+            border-color: #d2d2d7 !important;
+            color: #8e8e93 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
         }
         body.dark-mode button:disabled {
-             background-color: #444446;
-             border-color: #444446;
-             color: #6e6e73;
+             background-color: #444446 !important;
+             border-color: #444446 !important;
+             color: #6e6e73 !important;
+        }
+        .missed-btn:disabled {
+            background: none !important;
+            border: none !important;
+            color: var(--border-color-light) !important;
+        }
+        /* --- THIS IS THE FIX --- */
+        body.dark-mode .missed-btn:disabled {
+            color: #6e6e73 !important; /* Changed from border-color-dark for better visibility */
         }
 
         #theme-switcher-btn, #sync-btn { width: 44px; text-align: center; padding: 0.6rem; }
@@ -126,7 +135,7 @@
         body.dark-mode .dose-name:hover { background-color: #3a3a3c; }
         .dose-name-input, .time-edit-input { font-size: 1rem; border: none; background-color: #e9e9eb; padding: 2px 4px; border-radius: 4px; width: 100%; font-family: inherit; }
         .time-edit-input { font-size: 1.5rem; font-weight: 500; padding: 0; max-width: 150px; }
-        .missed-btn { background: none; border: none; color: var(--danger-color); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; transition: transform 0.2s ease; }
+        .missed-btn { background: none; border: none; color: var(--danger-color); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; transition: transform 0.2s ease, color 0.2s ease; }
         .missed-btn:hover { transform: scale(1.2); }
         .meal-med-form { background-color: var(--secondary-bg-light); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); }
         body.dark-mode .meal-med-form { background-color: var(--secondary-bg-dark); }
@@ -136,7 +145,6 @@
         .meal-med-form button { background-color: var(--accent-color); color: white; border: none; grid-column: 1 / -1; margin-top: 0.5rem; width: 100%;}
         .meal-med-form .form-group { margin-bottom: 1rem; }
         
-        /* Sync Modal Styles */
         #sync-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .sync-modal-content { background: var(--secondary-bg-light); padding: 2rem; border-radius: 12px; text-align: center; max-width: 90%; width: 400px; position: relative; }
         body.dark-mode .sync-modal-content { background: var(--secondary-bg-dark); }
@@ -206,7 +214,6 @@
             </div>
         </main>
     </div>
-
     <div id="sync-modal" class="hidden">
         <div class="sync-modal-content">
             <span id="close-modal-btn">&times;</span>
@@ -224,18 +231,9 @@
             <p id="sync-status"></p>
         </div>
     </div>
-
-    <script>
-        // All JavaScript logic goes here
-        document.addEventListener('DOMContentLoaded', () => {
-            // ... All your existing JS logic ...
-            // PLUS the new sync logic.
-        });
-    </script>
     
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- DOM ELEMENTS ---
         const initialDoseSelectionView = document.getElementById('initial-dose-selection-view');
         const scheduleViewContainer = document.getElementById('schedule-view-container');
         const scheduleList = document.getElementById('schedule-list');
@@ -248,8 +246,6 @@
         const addLunchMedBtn = document.getElementById('add-lunch-med-btn');
         const lunchTimeInput = document.getElementById('lunch-time');
         const body = document.body;
-
-        // --- SYNC MODAL ELEMENTS ---
         const syncBtn = document.getElementById('sync-btn');
         const syncModal = document.getElementById('sync-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
@@ -258,22 +254,19 @@
         const scanBtn = document.getElementById('scan-btn');
         const readerDiv = document.getElementById('reader');
         const syncStatus = document.getElementById('sync-status');
-
-        // --- APP STATE ---
         let schedule = [];
         let dataVersion = 0;
         let peer;
         let conn;
         let html5QrCode;
 
-        // --- DATA PERSISTENCE (with versioning) ---
         const saveSchedule = () => {
             const dataToSave = {
                 version: Date.now(),
                 schedule: schedule
             };
             localStorage.setItem('medScheduleData', JSON.stringify(dataToSave));
-            dataVersion = dataToSave.version; // Update local version
+            dataVersion = dataToSave.version;
         };
 
         const loadSchedule = () => {
@@ -299,7 +292,6 @@
             }
         };
 
-        // --- P2P SYNC LOGIC ---
         const initializePeer = () => {
             peer = new Peer();
             peer.on('open', id => {
@@ -311,7 +303,6 @@
                     height: 200,
                 });
             });
-
             peer.on('connection', (connection) => {
                 handleConnection(connection);
             });
@@ -320,35 +311,27 @@
         const handleConnection = (connection) => {
             conn = connection;
             syncStatus.textContent = `Connected to ${conn.peer}`;
-
             conn.on('open', () => {
-                // If this device initiated the connection, it starts the version check
                 if (conn.metadata.initiator) {
                     conn.send({ type: 'version_check', version: dataVersion });
                 }
             });
-
             conn.on('data', (data) => {
                 switch (data.type) {
-                    case 'version_check': // Received a version check from the other device
+                    case 'version_check':
                         if (dataVersion > data.version) {
-                            // My data is newer, send it
                             conn.send({ type: 'sync_data', payload: { version: dataVersion, schedule: schedule } });
                         } else if (dataVersion < data.version) {
-                            // Their data is newer, request it
                             conn.send({ type: 'request_data' });
                         } else {
-                            // Versions are the same
                             syncStatus.textContent = "Data is already up to date!";
                             setTimeout(() => syncModal.classList.add('hidden'), 2000);
                         }
                         break;
-                    
-                    case 'request_data': // Received a request for my data
+                    case 'request_data':
                         conn.send({ type: 'sync_data', payload: { version: dataVersion, schedule: schedule } });
                         break;
-                    
-                    case 'sync_data': // Received new data to apply
+                    case 'sync_data':
                         schedule = data.payload.schedule;
                         dataVersion = data.payload.version;
                         saveSchedule();
@@ -358,7 +341,6 @@
                         break;
                 }
             });
-
             conn.on('close', () => {
                 syncStatus.textContent = 'Connection closed.';
                 conn = null;
@@ -371,30 +353,24 @@
             }
             scanBtn.classList.add('hidden');
             syncStatus.textContent = 'Starting camera...';
-            html5QrCode.start(
-                { facingMode: "environment" },
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 }
-                },
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText, decodedResult) => {
                     html5QrCode.stop();
                     syncStatus.textContent = 'Connecting...';
                     const connection = peer.connect(decodedText, { metadata: { initiator: true } });
                     handleConnection(connection);
                 },
-                (errorMessage) => {
-                    // handle scan error
-                })
+                (errorMessage) => {})
                 .catch((err) => {
                     syncStatus.textContent = 'Error starting scanner.';
                 });
         };
         
-        // --- RENDER & UI LOGIC ---
         const renderSchedule = () => {
             schedule.sort((a, b) => a.time.localeCompare(b.time));
             scheduleList.innerHTML = '';
+            const now = new Date();
+
             schedule.forEach(item => {
                 const li = document.createElement('li');
                 const classList = ['schedule-item'];
@@ -403,9 +379,15 @@
                 if (item.type === 'dinner' || item.type === 'lunch') classList.push('white-med');
                 li.className = classList.join(' ');
                 li.dataset.id = item.id;
+                
                 const [hour, minute] = item.time.split(':');
-                const date = new Date(); date.setHours(hour, minute);
-                const formattedTime = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                const doseTime = new Date();
+                doseTime.setHours(parseInt(hour), parseInt(minute), 0, 0);
+
+                const formattedTime = doseTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                
+                const isMissedBtnDisabled = now < doseTime || item.taken;
+
                 li.innerHTML = `
                     <div class="checkbox-container ${item.taken ? 'checked' : ''}"><i class="fas fa-check"></i></div>
                     <div class="dose-details">
@@ -415,7 +397,7 @@
                         </div>
                        <span class="dose-name">${item.name}</span>
                     </div>
-                    <button class="missed-btn"><i class="fas fa-times"></i></button>`;
+                    <button class="missed-btn" ${isMissedBtnDisabled ? 'disabled' : ''}><i class="fas fa-times"></i></button>`;
                 scheduleList.appendChild(li);
             });
 
@@ -493,7 +475,6 @@
         };
 
         const rescheduleCore = (dosesToPlan, baseTime, isCascading = false) => {
-            // This function and handleMissedDose remain unchanged from your version.
             if (dosesToPlan.length === 0) return dosesToPlan;
             const standardIntervalMs = 3 * 60 * 60 * 1000;
             let intervalMs = standardIntervalMs;
@@ -531,7 +512,6 @@
             renderSchedule();
         };
 
-        // --- INITIALIZATION ---
         const init = () => {
             hourSelectionList.innerHTML = '';
             for (let i = 6; i <= 16; i++) {
@@ -554,10 +534,9 @@
                 showInitialDoseSelectionView(true);
             }
             loadTheme();
-            initializePeer(); // Start the P2P service
+            initializePeer();
         };
 
-        // --- EVENT LISTENERS ---
         syncBtn.addEventListener('click', () => {
             syncModal.classList.remove('hidden');
             syncStatus.textContent = '';
@@ -600,8 +579,8 @@
                     else { dose.time = input.value; saveSchedule(); renderSchedule(); }
                 };
                 input.addEventListener('blur', saveTime);
-                input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') input.blur(); });
-            } // ... other logic from original
+                input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
+            }
         });
 
         themeSwitcherBtn.addEventListener('click', () => {
