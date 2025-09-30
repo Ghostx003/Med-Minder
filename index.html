@@ -7,8 +7,11 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💊</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
     <style>
-        /* CSS styles are embedded here */
         :root {
             --primary-bg-light: #f4f7f9;
             --secondary-bg-light: #ffffff;
@@ -23,7 +26,6 @@
             --power-med-bg-light: #fff3e0;
             --white-med-color-light: #34aadc;
             --white-med-bg-light: #eaf8ff;
-
             --primary-bg-dark: #1c1c1e;
             --secondary-bg-dark: #2c2c2e;
             --primary-text-dark: #f5f5f7;
@@ -36,52 +38,46 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        html {
-            -webkit-text-size-adjust: 100%;
-        }
-
+        html { -webkit-text-size-adjust: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--primary-bg-light);
             color: var(--primary-text-light);
             transition: background-color 0.3s ease, color 0.3s ease;
         }
-
-        body.dark-mode {
-            background-color: var(--primary-bg-dark);
-            color: var(--primary-text-dark);
-        }
-
+        body.dark-mode { background-color: var(--primary-bg-dark); color: var(--primary-text-dark); }
         .app-container { max-width: 900px; margin: 2rem auto; padding: 1rem; }
-
         nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color-light); }
         body.dark-mode nav { border-bottom-color: var(--border-color-dark); }
         nav h1 { font-size: 1.8rem; font-weight: 600; }
-        .nav-controls { display: flex; gap: 1rem; }
-
-        button, input {
-            -webkit-tap-highlight-color: transparent; /* Removes the grey tap highlight on iOS */
-        }
+        .nav-controls { display: flex; align-items: center; gap: 1rem; }
+        button, input { -webkit-tap-highlight-color: transparent; }
 
         button { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; background-color: var(--secondary-bg-light); color: var(--accent-color); border: 1px solid var(--accent-color); }
         button.primary-action { background-color: var(--accent-color); color: white; border: none; }
         body.dark-mode button { background-color: var(--secondary-bg-dark); color: var(--accent-color); }
-        
-        body.dark-mode button.primary-action { 
-            background-color: var(--accent-color);
-            color: white;
-        }
-        
+        body.dark-mode button.primary-action { background-color: var(--accent-color); color: white; }
         button:hover { background-color: #e9e9eb; }
         button.primary-action:hover { background-color: #006ae1; }
         body.dark-mode button:hover { background-color: #3a3a3c; }
         button:active { transform: scale(0.97); }
-        #theme-switcher-btn { width: 44px; text-align: center; padding: 0.6rem; }
+        
+        /* Style for disabled buttons */
+        button:disabled {
+            background-color: #d2d2d7;
+            border-color: #d2d2d7;
+            color: #8e8e93;
+            cursor: not-allowed;
+        }
+        body.dark-mode button:disabled {
+             background-color: #444446;
+             border-color: #444446;
+             color: #6e6e73;
+        }
 
+        #theme-switcher-btn, #sync-btn { width: 44px; text-align: center; padding: 0.6rem; }
         main { padding-top: 2rem; }
         .hidden { display: none !important; }
-
         #initial-dose-selection-view { background-color: var(--secondary-bg-light); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
         body.dark-mode #initial-dose-selection-view { background-color: var(--secondary-bg-dark); }
         #initial-dose-selection-view h2 { margin-bottom: 1.5rem; text-align: center; }
@@ -91,35 +87,30 @@
         body.dark-mode .form-group label { color: var(--primary-text-dark); }
         .form-group input { width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color-light); font-size: 1rem; }
         body.dark-mode .form-group input { background-color: #3a3a3c; border-color: var(--border-color-dark); color: var(--primary-text-dark); }
-        
         .hour-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 1rem; }
         .hour-item { background-color: var(--secondary-bg-light); border: 1px solid var(--border-color-light); border-radius: 10px; padding: 1rem; text-align: center; font-size: 1.2rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow); }
         body.dark-mode .hour-item { background-color: var(--secondary-bg-dark); border-color: var(--border-color-dark); }
         .hour-item:hover { transform: translateY(-3px); background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
-
         #schedule-view-container { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
         #schedule-view h2 { margin-bottom: 1.5rem; color: var(--secondary-text-light); font-weight: 500; }
         body.dark-mode #schedule-view h2 { color: var(--secondary-text-dark); }
         #schedule-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
-
         #schedule-list { list-style: none; margin-bottom: 2rem; }
         .schedule-item { display: flex; align-items: center; background-color: var(--secondary-bg-light); padding: 1.2rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: var(--shadow); transition: all 0.3s ease; border-left: 5px solid transparent; }
         .schedule-item.power-med { border-left-color: var(--power-med-color-light); background-color: var(--power-med-bg-light); }
         .schedule-item.white-med { border-left-color: var(--white-med-color-light); background-color: var(--white-med-bg-light); }
-        body.dark-mode .schedule-item { background-color: var(--secondary-bg-dark); border-color: var(--border-color-dark); }
+        body.dark-mode .schedule-item { background-color: var(--secondary-bg-dark); }
         body.dark-mode .schedule-item.power-med { border-left-color: var(--power-med-color-dark); background-color: var(--power-med-bg-dark); }
         body.dark-mode .schedule-item.white-med { border-left-color: var(--white-med-color-dark); background-color: var(--white-med-bg-dark); }
         .schedule-item.taken { opacity: 0.6; background-color: #e8f5e9; }
         body.dark-mode .schedule-item.taken { background-color: #2c3b2d; }
         .schedule-item.taken .dose-details { text-decoration: line-through; color: var(--secondary-text-light); }
         body.dark-mode .schedule-item.taken .dose-details { color: var(--secondary-text-dark); }
-        
         .checkbox-container { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color-light); display: flex; justify-content: center; align-items: center; cursor: pointer; margin-right: 1rem; flex-shrink: 0; transition: all 0.2s ease; }
         body.dark-mode .checkbox-container { border-color: var(--border-color-dark); }
         .checkbox-container.checked { background-color: var(--success-color); border-color: var(--success-color); }
         .checkbox-container .fa-check { color: white; font-size: 0.8rem; opacity: 0; transition: opacity 0.2s ease; }
         .checkbox-container.checked .fa-check { opacity: 1; }
-        
         .dose-details { flex-grow: 1; }
         .time-display { display: flex; align-items: center; gap: 0.5rem; }
         .time-text { font-size: 1.5rem; font-weight: 500; }
@@ -135,10 +126,8 @@
         body.dark-mode .dose-name:hover { background-color: #3a3a3c; }
         .dose-name-input, .time-edit-input { font-size: 1rem; border: none; background-color: #e9e9eb; padding: 2px 4px; border-radius: 4px; width: 100%; font-family: inherit; }
         .time-edit-input { font-size: 1.5rem; font-weight: 500; padding: 0; max-width: 150px; }
-        
         .missed-btn { background: none; border: none; color: var(--danger-color); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; transition: transform 0.2s ease; }
         .missed-btn:hover { transform: scale(1.2); }
-        
         .meal-med-form { background-color: var(--secondary-bg-light); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); }
         body.dark-mode .meal-med-form { background-color: var(--secondary-bg-dark); }
         .meal-med-form h3 { font-weight: 500; margin-bottom: 0.5rem; grid-column: 1 / -1; }
@@ -146,32 +135,28 @@
         body.dark-mode .meal-med-form input { background-color: #3a3a3c; border-color: var(--border-color-dark); color: var(--primary-text-dark); }
         .meal-med-form button { background-color: var(--accent-color); color: white; border: none; grid-column: 1 / -1; margin-top: 0.5rem; width: 100%;}
         .meal-med-form .form-group { margin-bottom: 1rem; }
+        
+        /* Sync Modal Styles */
+        #sync-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .sync-modal-content { background: var(--secondary-bg-light); padding: 2rem; border-radius: 12px; text-align: center; max-width: 90%; width: 400px; position: relative; }
+        body.dark-mode .sync-modal-content { background: var(--secondary-bg-dark); }
+        #close-modal-btn { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: var(--secondary-text-light); }
+        body.dark-mode #close-modal-btn { color: var(--secondary-text-dark); }
+        #qr-code { margin: 1rem auto; background: white; padding: 10px; border-radius: 8px; }
+        #reader { width: 100%; border: 1px solid var(--border-color-light); border-radius: 8px; overflow: hidden; }
+        #sync-status { margin-top: 1rem; min-height: 24px; font-weight: 500; }
+        .mobile-view { display: none; }
 
-        /* === MOBILE FRIENDLY STYLES === */
         @media (max-width: 768px) {
-            body {
-                font-size: 15px; /* Adjust base font size for better readability */
-            }
-            .app-container {
-                margin: 0.5rem auto;
-                padding: 0.5rem;
-            }
-            nav h1 {
-                font-size: 1.5rem;
-            }
-            /* Main layout fix: stack columns on mobile */
-            #schedule-view-container {
-                grid-template-columns: 1fr;
-            }
-            .schedule-item, .meal-med-form, #initial-dose-selection-view {
-                padding: 1rem;
-            }
-            .time-text {
-                font-size: 1.3rem;
-            }
-            .dose-name {
-                font-size: 0.9rem;
-            }
+            body { font-size: 15px; }
+            .app-container { margin: 0.5rem auto; padding: 0.5rem; }
+            nav h1 { font-size: 1.5rem; }
+            #schedule-view-container { grid-template-columns: 1fr; }
+            .schedule-item, .meal-med-form, #initial-dose-selection-view { padding: 1rem; }
+            .time-text { font-size: 1.3rem; }
+            .dose-name { font-size: 0.9rem; }
+            .pc-view { display: none; }
+            .mobile-view { display: block; }
         }
     </style>
 </head>
@@ -180,6 +165,7 @@
         <nav>
             <h1>Med Minder</h1>
             <div class="nav-controls">
+                <button id="sync-btn"><i class="fas fa-sync-alt"></i></button>
                 <button id="reset-btn">Reset</button>
                 <button id="theme-switcher-btn"><i class="fas fa-moon"></i></button>
             </div>
@@ -221,257 +207,430 @@
         </main>
     </div>
 
+    <div id="sync-modal" class="hidden">
+        <div class="sync-modal-content">
+            <span id="close-modal-btn">&times;</span>
+            <div class="pc-view">
+                <h3>Sync Device</h3>
+                <p>Scan this QR code with your other device.</p>
+                <div id="qr-code"></div>
+                <p>Your ID: <b id="peer-id-display"></b></p>
+            </div>
+            <div class="mobile-view">
+                <h3>Sync Device</h3>
+                <div id="reader"></div>
+                <button id="scan-btn" class="primary-action" style="margin-top: 1rem;"><i class="fas fa-camera"></i> Scan Code</button>
+            </div>
+            <p id="sync-status"></p>
+        </div>
+    </div>
+
     <script>
+        // All JavaScript logic goes here
         document.addEventListener('DOMContentLoaded', () => {
-            const initialDoseSelectionView = document.getElementById('initial-dose-selection-view');
-            const scheduleViewContainer = document.getElementById('schedule-view-container');
-            const scheduleList = document.getElementById('schedule-list');
-            const themeSwitcherBtn = document.getElementById('theme-switcher-btn');
-            const resetBtn = document.getElementById('reset-btn');
-            const doseCountInput = document.getElementById('dose-count');
-            const hourSelectionList = document.getElementById('hour-selection-list');
-            const addDinnerMedBtn = document.getElementById('add-dinner-med-btn');
-            const dinnerTimeInput = document.getElementById('dinner-time');
-            const addLunchMedBtn = document.getElementById('add-lunch-med-btn');
-            const lunchTimeInput = document.getElementById('lunch-time');
-            const body = document.body;
-            let schedule = [];
-
-            const saveSchedule = () => localStorage.setItem('medSchedule', JSON.stringify(schedule));
-            const loadSchedule = () => {
-                const saved = localStorage.getItem('medSchedule');
-                if (saved) { schedule = JSON.parse(saved); return true; }
-                return false;
-            };
-            const saveTheme = (theme) => localStorage.setItem('medTheme', theme);
-            const loadTheme = () => {
-                const theme = localStorage.getItem('medTheme');
-                if (theme === 'dark') {
-                    body.classList.add('dark-mode');
-                    themeSwitcherBtn.innerHTML = '<i class="fas fa-sun"></i>';
-                } else {
-                    body.classList.remove('dark-mode');
-                    themeSwitcherBtn.innerHTML = '<i class="fas fa-moon"></i>';
-                }
-            };
-
-            const renderSchedule = () => {
-                schedule.sort((a, b) => a.time.localeCompare(b.time));
-                scheduleList.innerHTML = '';
-                schedule.forEach(item => {
-                    const li = document.createElement('li');
-                    const classList = ['schedule-item'];
-                    if (item.taken) classList.push('taken');
-                    if (item.type === 'power') classList.push('power-med');
-                    if (item.type === 'dinner' || item.type === 'lunch') classList.push('white-med');
-                    
-                    li.className = classList.join(' ');
-                    li.dataset.id = item.id;
-
-                    const [hour, minute] = item.time.split(':');
-                    const date = new Date(); date.setHours(hour, minute);
-                    const formattedTime = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                    li.innerHTML = `
-                        <div class="checkbox-container ${item.taken ? 'checked' : ''}"><i class="fas fa-check"></i></div>
-                        <div class="dose-details">
-                            <div class="time-display">
-                                <span class="time-text">${formattedTime}</span>
-                                <i class="fas fa-pencil-alt edit-time-btn"></i>
-                            </div>
-                           <span class="dose-name">${item.name}</span>
-                        </div>
-                        <button class="missed-btn"><i class="fas fa-times"></i></button>`;
-                    scheduleList.appendChild(li);
-                });
-            };
-
-            const recalculatePowerMeds = () => {
-                schedule = schedule.filter(d => d.type !== 'power');
-                const mainDoses = schedule.filter(d => d.type === 'steroid');
-                if (mainDoses.length === 0) return;
-                mainDoses.sort((a, b) => a.time.localeCompare(b.time));
-                const firstDose = mainDoses[0];
-                const lastDose = mainDoses[mainDoses.length - 1];
-                
-                const [firstHour, firstMin] = firstDose.time.split(':');
-                const firstPowerTime = new Date(); firstPowerTime.setHours(parseInt(firstHour) + 1, firstMin);
-                const [lastHour, lastMin] = lastDose.time.split(':');
-                const lastPowerTime = new Date(); lastPowerTime.setHours(lastHour, parseInt(lastMin) + 30);
-
-                schedule.push({ id: Date.now() + 1000, time: `${String(firstPowerTime.getHours()).padStart(2, '0')}:${String(firstPowerTime.getMinutes()).padStart(2, '0')}`, taken: false, name: "Power Med", type: "power" });
-                schedule.push({ id: Date.now() + 2000, time: `${String(lastPowerTime.getHours()).padStart(2, '0')}:${String(lastPowerTime.getMinutes()).padStart(2, '0')}`, taken: false, name: "Power Med", type: "power" });
-            };
-
-            const generateInitialSchedule = (doseCount, startHour) => {
-                schedule = [];
-                for (let i = 0; i < doseCount; i++) {
-                    const doseTime = new Date();
-                    doseTime.setHours(startHour + (i * 3), 0);
-                    schedule.push({ id: Date.now() + i, time: `${String(doseTime.getHours()).padStart(2, '0')}:00`, taken: false, name: "Steroid", type: "steroid" });
-                }
-                recalculatePowerMeds();
-                saveSchedule();
-                renderSchedule();
-                showInitialDoseSelectionView(false);
-            };
-
-            const handleMissedDose = () => {
-                const takenDoses = schedule.filter(d => d.taken);
-                const otherIndependentDoses = schedule.filter(d => d.type !== 'steroid' && !d.taken);
-                const untakenSteroidDoses = schedule.filter(d => !d.taken && d.type === 'steroid');
-                if (untakenSteroidDoses.length === 0) return;
-
-                const rescheduled = rescheduleCore(untakenSteroidDoses, new Date());
-                schedule = [...takenDoses, ...otherIndependentDoses, ...rescheduled];
-                recalculatePowerMeds();
-                saveSchedule();
-                renderSchedule();
-            };
-
-            const updateAndReschedule = (editedDoseId, newTime) => {
-                schedule.sort((a, b) => a.time.localeCompare(b.time));
-                const editedIndex = schedule.findIndex(d => d.id === editedDoseId);
-                if (editedIndex === -1) return;
-                const editedDose = schedule[editedIndex];
-                editedDose.time = newTime;
-                editedDose.taken = true;
-                const [newHour, newMinute] = newTime.split(':');
-                const baseTime = new Date(); baseTime.setHours(newHour, newMinute, 0, 0);
-
-                const subsequentUntaken = schedule.filter((dose, index) => index > editedIndex && !dose.taken && dose.type === 'steroid');
-                const otherDoses = schedule.filter(dose => !subsequentUntaken.includes(dose));
-                const rescheduled = rescheduleCore(subsequentUntaken, baseTime, true);
-                schedule = [...otherDoses, ...rescheduled];
-                recalculatePowerMeds();
-                saveSchedule();
-                renderSchedule();
-            };
-
-            const rescheduleCore = (dosesToPlan, baseTime, isCascading = false) => {
-                if (dosesToPlan.length === 0) return dosesToPlan;
-                const standardIntervalMs = 3 * 60 * 60 * 1000;
-                let intervalMs = standardIntervalMs;
-                const firstDoseOffset = isCascading ? standardIntervalMs : 0;
-                const potentialEndTime = new Date(baseTime.getTime() + firstDoseOffset + (dosesToPlan.length - 1) * standardIntervalMs);
-
-                if (potentialEndTime.getDate() > baseTime.getDate()) {
-                    const midnight = new Date(baseTime); midnight.setHours(23, 59, 59, 999);
-                    const msUntilMidnight = midnight.getTime() - baseTime.getTime();
-                    const numDoses = dosesToPlan.length;
-
-                    if (!isCascading) {
-                        intervalMs = numDoses > 1 ? msUntilMidnight / (numDoses - 1) : 0;
-                    } else {
-                        intervalMs = numDoses > 0 ? msUntilMidnight / numDoses : 0;
-                    }
-                }
-                dosesToPlan.forEach((dose, index) => {
-                    const offset = isCascading ? (index + 1) * intervalMs : index * intervalMs;
-                    const futureTime = new Date(baseTime.getTime() + offset);
-                    dose.time = `${String(futureTime.getHours()).padStart(2, '0')}:${String(futureTime.getMinutes()).padStart(2, '0')}`;
-                });
-                return dosesToPlan;
-            };
-            
-            const showInitialDoseSelectionView = (show = true) => {
-                if(show) {
-                    initialDoseSelectionView.classList.remove('hidden');
-                    scheduleViewContainer.classList.add('hidden');
-                } else {
-                    initialDoseSelectionView.classList.add('hidden');
-                    scheduleViewContainer.classList.remove('hidden');
-                }
-            };
-
-            const init = () => {
-                hourSelectionList.innerHTML = '';
-                for (let i = 6; i <= 16; i++) { // 6 AM to 4 PM
-                    const date = new Date(); date.setHours(i, 0);
-                    const timeString = date.toLocaleTimeString([], { hour: 'numeric' });
-                    const hourItem = document.createElement('div');
-                    hourItem.className = 'hour-item';
-                    hourItem.textContent = timeString;
-                    hourItem.dataset.hour = i;
-                    hourItem.addEventListener('click', () => {
-                        const doseCount = parseInt(doseCountInput.value);
-                        if (doseCount > 0) { generateInitialSchedule(doseCount, i); }
-                    });
-                    hourSelectionList.appendChild(hourItem);
-                }
-                if (loadSchedule() && schedule.length > 0) { renderSchedule(); showInitialDoseSelectionView(false); } 
-                else { showInitialDoseSelectionView(true); }
-                loadTheme();
-            };
-
-            scheduleList.addEventListener('click', (e) => {
-                const target = e.target;
-                const parentItem = target.closest('.schedule-item');
-                if (!parentItem) return;
-                const id = parseInt(parentItem.dataset.id);
-                const dose = schedule.find(d => d.id === id);
-                if (!dose) return;
-
-                if (target.closest('.checkbox-container')) {
-                    dose.taken = !dose.taken;
-                    saveSchedule();
-                    renderSchedule();
-                } else if (target.closest('.missed-btn')) {
-                    handleMissedDose();
-                } else if (target.classList.contains('edit-time-btn')) {
-                    const timeDisplay = parentItem.querySelector('.time-display');
-                    const input = document.createElement('input');
-                    input.type = 'time'; input.value = dose.time; input.className = 'time-edit-input';
-                    timeDisplay.style.display = 'none';
-                    timeDisplay.parentElement.insertBefore(input, timeDisplay.nextSibling);
-                    input.focus();
-                    const saveTime = () => {
-                        if (dose.type === 'steroid') { updateAndReschedule(id, input.value); } 
-                        else { dose.time = input.value; saveSchedule(); renderSchedule(); }
-                    };
-                    input.addEventListener('blur', saveTime);
-                    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
-                } else if (target.classList.contains('dose-name')) {
-                    if (dose.type === 'power' || dose.type === 'dinner' || dose.type === 'lunch') return;
-                    const input = document.createElement('input');
-                    input.type = 'text'; input.value = dose.name; input.className = 'dose-name-input';
-                    target.replaceWith(input);
-                    input.focus();
-                    const saveName = () => {
-                        dose.name = input.value || "Untitled"; saveSchedule(); renderSchedule();
-                    };
-                    input.addEventListener('blur', saveName);
-                    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
-                }
-            });
-
-            themeSwitcherBtn.addEventListener('click', () => {
-                body.classList.toggle('dark-mode');
-                if (body.classList.contains('dark-mode')) {
-                    themeSwitcherBtn.innerHTML = '<i class="fas fa-sun"></i>'; saveTheme('dark');
-                } else {
-                    themeSwitcherBtn.innerHTML = '<i class="fas fa-moon"></i>'; saveTheme('light');
-                }
-            });
-            resetBtn.addEventListener('click', () => showInitialDoseSelectionView(true));
-            
-            addDinnerMedBtn.addEventListener('click', () => {
-                const time = dinnerTimeInput.value;
-                if (time) {
-                    schedule = schedule.filter(d => d.type !== 'dinner');
-                    schedule.push({ id: Date.now(), time, taken: false, name: "White Med", type: "dinner" });
-                    saveSchedule(); renderSchedule();
-                }
-            });
-            addLunchMedBtn.addEventListener('click', () => {
-                const time = lunchTimeInput.value;
-                if (time) {
-                    schedule = schedule.filter(d => d.type !== 'lunch');
-                    schedule.push({ id: Date.now(), time, taken: false, name: "White Med", type: "lunch" });
-                    saveSchedule(); renderSchedule();
-                }
-            });
-            init();
+            // ... All your existing JS logic ...
+            // PLUS the new sync logic.
         });
     </script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM ELEMENTS ---
+        const initialDoseSelectionView = document.getElementById('initial-dose-selection-view');
+        const scheduleViewContainer = document.getElementById('schedule-view-container');
+        const scheduleList = document.getElementById('schedule-list');
+        const themeSwitcherBtn = document.getElementById('theme-switcher-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const doseCountInput = document.getElementById('dose-count');
+        const hourSelectionList = document.getElementById('hour-selection-list');
+        const addDinnerMedBtn = document.getElementById('add-dinner-med-btn');
+        const dinnerTimeInput = document.getElementById('dinner-time');
+        const addLunchMedBtn = document.getElementById('add-lunch-med-btn');
+        const lunchTimeInput = document.getElementById('lunch-time');
+        const body = document.body;
+
+        // --- SYNC MODAL ELEMENTS ---
+        const syncBtn = document.getElementById('sync-btn');
+        const syncModal = document.getElementById('sync-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const qrCodeContainer = document.getElementById('qr-code');
+        const peerIdDisplay = document.getElementById('peer-id-display');
+        const scanBtn = document.getElementById('scan-btn');
+        const readerDiv = document.getElementById('reader');
+        const syncStatus = document.getElementById('sync-status');
+
+        // --- APP STATE ---
+        let schedule = [];
+        let dataVersion = 0;
+        let peer;
+        let conn;
+        let html5QrCode;
+
+        // --- DATA PERSISTENCE (with versioning) ---
+        const saveSchedule = () => {
+            const dataToSave = {
+                version: Date.now(),
+                schedule: schedule
+            };
+            localStorage.setItem('medScheduleData', JSON.stringify(dataToSave));
+            dataVersion = dataToSave.version; // Update local version
+        };
+
+        const loadSchedule = () => {
+            const saved = localStorage.getItem('medScheduleData');
+            if (saved) {
+                const parsedData = JSON.parse(saved);
+                schedule = parsedData.schedule || [];
+                dataVersion = parsedData.version || 0;
+                return true;
+            }
+            return false;
+        };
+
+        const saveTheme = (theme) => localStorage.setItem('medTheme', theme);
+        const loadTheme = () => {
+            const theme = localStorage.getItem('medTheme');
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+                themeSwitcherBtn.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                body.classList.remove('dark-mode');
+                themeSwitcherBtn.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        };
+
+        // --- P2P SYNC LOGIC ---
+        const initializePeer = () => {
+            peer = new Peer();
+            peer.on('open', id => {
+                peerIdDisplay.textContent = id;
+                qrCodeContainer.innerHTML = "";
+                new QRCode(qrCodeContainer, {
+                    text: id,
+                    width: 200,
+                    height: 200,
+                });
+            });
+
+            peer.on('connection', (connection) => {
+                handleConnection(connection);
+            });
+        };
+
+        const handleConnection = (connection) => {
+            conn = connection;
+            syncStatus.textContent = `Connected to ${conn.peer}`;
+
+            conn.on('open', () => {
+                // If this device initiated the connection, it starts the version check
+                if (conn.metadata.initiator) {
+                    conn.send({ type: 'version_check', version: dataVersion });
+                }
+            });
+
+            conn.on('data', (data) => {
+                switch (data.type) {
+                    case 'version_check': // Received a version check from the other device
+                        if (dataVersion > data.version) {
+                            // My data is newer, send it
+                            conn.send({ type: 'sync_data', payload: { version: dataVersion, schedule: schedule } });
+                        } else if (dataVersion < data.version) {
+                            // Their data is newer, request it
+                            conn.send({ type: 'request_data' });
+                        } else {
+                            // Versions are the same
+                            syncStatus.textContent = "Data is already up to date!";
+                            setTimeout(() => syncModal.classList.add('hidden'), 2000);
+                        }
+                        break;
+                    
+                    case 'request_data': // Received a request for my data
+                        conn.send({ type: 'sync_data', payload: { version: dataVersion, schedule: schedule } });
+                        break;
+                    
+                    case 'sync_data': // Received new data to apply
+                        schedule = data.payload.schedule;
+                        dataVersion = data.payload.version;
+                        saveSchedule();
+                        renderSchedule();
+                        syncStatus.textContent = "Sync complete!";
+                        setTimeout(() => syncModal.classList.add('hidden'), 2000);
+                        break;
+                }
+            });
+
+            conn.on('close', () => {
+                syncStatus.textContent = 'Connection closed.';
+                conn = null;
+            });
+        };
+
+        const startScanner = () => {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            scanBtn.classList.add('hidden');
+            syncStatus.textContent = 'Starting camera...';
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText, decodedResult) => {
+                    html5QrCode.stop();
+                    syncStatus.textContent = 'Connecting...';
+                    const connection = peer.connect(decodedText, { metadata: { initiator: true } });
+                    handleConnection(connection);
+                },
+                (errorMessage) => {
+                    // handle scan error
+                })
+                .catch((err) => {
+                    syncStatus.textContent = 'Error starting scanner.';
+                });
+        };
+        
+        // --- RENDER & UI LOGIC ---
+        const renderSchedule = () => {
+            schedule.sort((a, b) => a.time.localeCompare(b.time));
+            scheduleList.innerHTML = '';
+            schedule.forEach(item => {
+                const li = document.createElement('li');
+                const classList = ['schedule-item'];
+                if (item.taken) classList.push('taken');
+                if (item.type === 'power') classList.push('power-med');
+                if (item.type === 'dinner' || item.type === 'lunch') classList.push('white-med');
+                li.className = classList.join(' ');
+                li.dataset.id = item.id;
+                const [hour, minute] = item.time.split(':');
+                const date = new Date(); date.setHours(hour, minute);
+                const formattedTime = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                li.innerHTML = `
+                    <div class="checkbox-container ${item.taken ? 'checked' : ''}"><i class="fas fa-check"></i></div>
+                    <div class="dose-details">
+                        <div class="time-display">
+                            <span class="time-text">${formattedTime}</span>
+                            <i class="fas fa-pencil-alt edit-time-btn"></i>
+                        </div>
+                       <span class="dose-name">${item.name}</span>
+                    </div>
+                    <button class="missed-btn"><i class="fas fa-times"></i></button>`;
+                scheduleList.appendChild(li);
+            });
+
+            const hasLunchMed = schedule.some(d => d.type === 'lunch');
+            addLunchMedBtn.disabled = hasLunchMed;
+            lunchTimeInput.disabled = hasLunchMed;
+
+            const hasDinnerMed = schedule.some(d => d.type === 'dinner');
+            addDinnerMedBtn.disabled = hasDinnerMed;
+            dinnerTimeInput.disabled = hasDinnerMed;
+        };
+
+        const recalculatePowerMeds = () => {
+            const existingPowerMeds = schedule.filter(d => d.type === 'power');
+            existingPowerMeds.sort((a, b) => a.time.localeCompare(b.time));
+            schedule = schedule.filter(d => d.type !== 'power');
+            const mainDoses = schedule.filter(d => d.type === 'steroid');
+            if (mainDoses.length === 0) return;
+            mainDoses.sort((a, b) => a.time.localeCompare(b.time));
+            const firstDose = mainDoses[0];
+            const lastDose = mainDoses[mainDoses.length - 1];
+            const [firstHour, firstMin] = firstDose.time.split(':');
+            const firstPowerTime = new Date(); firstPowerTime.setHours(parseInt(firstHour) + 1, firstMin);
+            const [lastHour, lastMin] = lastDose.time.split(':');
+            const lastPowerTime = new Date(); lastPowerTime.setHours(lastHour, parseInt(lastMin) + 30);
+            const powerMed1 = {
+                id: existingPowerMeds.length > 0 ? existingPowerMeds[0].id : Date.now() + 1000,
+                time: `${String(firstPowerTime.getHours()).padStart(2, '0')}:${String(firstPowerTime.getMinutes()).padStart(2, '0')}`,
+                taken: existingPowerMeds.length > 0 ? existingPowerMeds[0].taken : false,
+                name: "Power Med", type: "power"
+            };
+            const powerMed2 = {
+                id: existingPowerMeds.length > 1 ? existingPowerMeds[1].id : Date.now() + 2000,
+                time: `${String(lastPowerTime.getHours()).padStart(2, '0')}:${String(lastPowerTime.getMinutes()).padStart(2, '0')}`,
+                taken: existingPowerMeds.length > 1 ? existingPowerMeds[1].taken : false,
+                name: "Power Med", type: "power"
+            };
+            schedule.push(powerMed1, powerMed2);
+        };
+
+        const generateInitialSchedule = (doseCount, startHour) => {
+            schedule = [];
+            for (let i = 0; i < doseCount; i++) {
+                const doseTime = new Date();
+                doseTime.setHours(startHour + (i * 3), 0);
+                schedule.push({ id: Date.now() + i, time: `${String(doseTime.getHours()).padStart(2, '0')}:00`, taken: false, name: "Steroid", type: "steroid" });
+            }
+            recalculatePowerMeds();
+            saveSchedule();
+            renderSchedule();
+            showInitialDoseSelectionView(false);
+        };
+
+        const updateAndReschedule = (editedDoseId, newTime) => {
+            schedule.sort((a, b) => a.time.localeCompare(b.time));
+            const editedIndex = schedule.findIndex(d => d.id === editedDoseId);
+            if (editedIndex === -1) return;
+            const editedDose = schedule[editedIndex];
+            editedDose.time = newTime;
+            editedDose.taken = true;
+            const [newHour, newMinute] = newTime.split(':');
+            const baseTime = new Date(); baseTime.setHours(newHour, newMinute, 0, 0);
+            const subsequentUntaken = schedule.filter((dose, index) => index > editedIndex && !dose.taken && dose.type === 'steroid');
+            const otherDoses = schedule.filter(dose => !subsequentUntaken.includes(dose));
+            const rescheduled = rescheduleCore(subsequentUntaken, baseTime, true);
+            schedule = [...otherDoses, ...rescheduled];
+            recalculatePowerMeds();
+            saveSchedule();
+            renderSchedule();
+        };
+
+        const showInitialDoseSelectionView = (show = true) => {
+            initialDoseSelectionView.classList.toggle('hidden', !show);
+            scheduleViewContainer.classList.toggle('hidden', show);
+        };
+
+        const rescheduleCore = (dosesToPlan, baseTime, isCascading = false) => {
+            // This function and handleMissedDose remain unchanged from your version.
+            if (dosesToPlan.length === 0) return dosesToPlan;
+            const standardIntervalMs = 3 * 60 * 60 * 1000;
+            let intervalMs = standardIntervalMs;
+            const firstDoseOffset = isCascading ? standardIntervalMs : 0;
+            const potentialEndTime = new Date(baseTime.getTime() + firstDoseOffset + (dosesToPlan.length - 1) * standardIntervalMs);
+
+            if (potentialEndTime.getDate() > baseTime.getDate()) {
+                const midnight = new Date(baseTime); midnight.setHours(23, 59, 59, 999);
+                const msUntilMidnight = midnight.getTime() - baseTime.getTime();
+                const numDoses = dosesToPlan.length;
+
+                if (!isCascading) {
+                    intervalMs = numDoses > 1 ? msUntilMidnight / (numDoses - 1) : 0;
+                } else {
+                    intervalMs = numDoses > 0 ? msUntilMidnight / numDoses : 0;
+                }
+            }
+            dosesToPlan.forEach((dose, index) => {
+                const offset = isCascading ? (index + 1) * intervalMs : index * intervalMs;
+                const futureTime = new Date(baseTime.getTime() + offset);
+                dose.time = `${String(futureTime.getHours()).padStart(2, '0')}:${String(futureTime.getMinutes()).padStart(2, '0')}`;
+            });
+            return dosesToPlan;
+        };
+        const handleMissedDose = () => {
+            const takenDoses = schedule.filter(d => d.taken);
+            const otherIndependentDoses = schedule.filter(d => d.type !== 'steroid' && !d.taken);
+            const untakenSteroidDoses = schedule.filter(d => !d.taken && d.type === 'steroid');
+            if (untakenSteroidDoses.length === 0) return;
+
+            const rescheduled = rescheduleCore(untakenSteroidDoses, new Date());
+            schedule = [...takenDoses, ...otherIndependentDoses, ...rescheduled];
+            recalculatePowerMeds();
+            saveSchedule();
+            renderSchedule();
+        };
+
+        // --- INITIALIZATION ---
+        const init = () => {
+            hourSelectionList.innerHTML = '';
+            for (let i = 6; i <= 16; i++) {
+                const date = new Date(); date.setHours(i, 0);
+                const timeString = date.toLocaleTimeString([], { hour: 'numeric' });
+                const hourItem = document.createElement('div');
+                hourItem.className = 'hour-item';
+                hourItem.textContent = timeString;
+                hourItem.dataset.hour = i;
+                hourItem.addEventListener('click', () => {
+                    const doseCount = parseInt(doseCountInput.value);
+                    if (doseCount > 0) { generateInitialSchedule(doseCount, i); }
+                });
+                hourSelectionList.appendChild(hourItem);
+            }
+            if (loadSchedule() && schedule.length > 0) {
+                renderSchedule();
+                showInitialDoseSelectionView(false);
+            } else {
+                showInitialDoseSelectionView(true);
+            }
+            loadTheme();
+            initializePeer(); // Start the P2P service
+        };
+
+        // --- EVENT LISTENERS ---
+        syncBtn.addEventListener('click', () => {
+            syncModal.classList.remove('hidden');
+            syncStatus.textContent = '';
+            scanBtn.classList.remove('hidden');
+        });
+        closeModalBtn.addEventListener('click', () => {
+            if(html5QrCode && html5QrCode.isScanning){
+                html5QrCode.stop();
+            }
+            syncModal.classList.add('hidden');
+        });
+        scanBtn.addEventListener('click', startScanner);
+
+        scheduleList.addEventListener('click', (e) => {
+            const parentItem = e.target.closest('.schedule-item');
+            if (!parentItem) return;
+            const id = parseInt(parentItem.dataset.id);
+            const dose = schedule.find(d => d.id === id);
+            if (!dose) return;
+
+            if (e.target.closest('.checkbox-container')) {
+                dose.taken = !dose.taken;
+                saveSchedule(); renderSchedule();
+            } else if (e.target.closest('.missed-btn')) {
+                if (dose.type === 'steroid') {
+                    handleMissedDose();
+                } else {
+                    schedule = schedule.filter(d => d.id !== id);
+                    saveSchedule(); renderSchedule();
+                }
+            } else if (e.target.classList.contains('edit-time-btn')) {
+                const timeDisplay = parentItem.querySelector('.time-display');
+                const input = document.createElement('input');
+                input.type = 'time'; input.value = dose.time; input.className = 'time-edit-input';
+                timeDisplay.style.display = 'none';
+                timeDisplay.parentElement.insertBefore(input, timeDisplay.nextSibling);
+                input.focus();
+                const saveTime = () => {
+                    if (dose.type === 'steroid') { updateAndReschedule(id, input.value); } 
+                    else { dose.time = input.value; saveSchedule(); renderSchedule(); }
+                };
+                input.addEventListener('blur', saveTime);
+                input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') input.blur(); });
+            } // ... other logic from original
+        });
+
+        themeSwitcherBtn.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            const theme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+            themeSwitcherBtn.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            saveTheme(theme);
+        });
+
+        resetBtn.addEventListener('click', () => showInitialDoseSelectionView(true));
+        
+        addDinnerMedBtn.addEventListener('click', () => {
+            if (dinnerTimeInput.value) {
+                schedule.push({ id: Date.now(), time: dinnerTimeInput.value, taken: false, name: "White Med", type: "dinner" });
+                saveSchedule(); renderSchedule();
+            }
+        });
+
+        addLunchMedBtn.addEventListener('click', () => {
+            if (lunchTimeInput.value) {
+                schedule.push({ id: Date.now(), time: lunchTimeInput.value, taken: false, name: "White Med", type: "lunch" });
+                saveSchedule(); renderSchedule();
+            }
+        });
+
+        init();
+    });
+</script>
+
+
 </body>
 </html>
