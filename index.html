@@ -47,10 +47,19 @@
         }
         body.dark-mode { background-color: var(--primary-bg-dark); color: var(--primary-text-dark); }
         .app-container { max-width: 900px; margin: 2rem auto; padding: 1rem; }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color-light); }
-        body.dark-mode nav { border-bottom-color: var(--border-color-dark); }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; }
+        .nav-left { display: flex; align-items: center; gap: 1.5rem; }
         nav h1 { font-size: 1.8rem; font-weight: 600; }
         .nav-controls { display: flex; align-items: center; gap: 1rem; }
+        hr.divider {
+            border: none;
+            height: 1px;
+            background-color: var(--border-color-light);
+            margin: 0 0 2rem 0;
+        }
+        body.dark-mode hr.divider {
+            background-color: var(--border-color-dark);
+        }
         button, input { -webkit-tap-highlight-color: transparent; }
 
         button { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease; background-color: var(--secondary-bg-light); color: var(--accent-color); border: 1px solid var(--accent-color); }
@@ -79,13 +88,12 @@
             border: none !important;
             color: var(--border-color-light) !important;
         }
-        /* --- THIS IS THE FIX --- */
         body.dark-mode .missed-btn:disabled {
-            color: #6e6e73 !important; /* Changed from border-color-dark for better visibility */
+            color: #6e6e73 !important;
         }
 
         #theme-switcher-btn, #sync-btn { width: 44px; text-align: center; padding: 0.6rem; }
-        main { padding-top: 2rem; }
+        main { padding-top: 0; }
         .hidden { display: none !important; }
         #initial-dose-selection-view { background-color: var(--secondary-bg-light); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
         body.dark-mode #initial-dose-selection-view { background-color: var(--secondary-bg-dark); }
@@ -137,7 +145,7 @@
         .time-edit-input { font-size: 1.5rem; font-weight: 500; padding: 0; max-width: 150px; }
         .missed-btn { background: none; border: none; color: var(--danger-color); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; transition: transform 0.2s ease, color 0.2s ease; }
         .missed-btn:hover { transform: scale(1.2); }
-        .meal-med-form { background-color: var(--secondary-bg-light); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); }
+        .meal-med-form { position: relative; background-color: var(--secondary-bg-light); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); }
         body.dark-mode .meal-med-form { background-color: var(--secondary-bg-dark); }
         .meal-med-form h3 { font-weight: 500; margin-bottom: 0.5rem; grid-column: 1 / -1; }
         .meal-med-form input { padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color-light); font-family: inherit; font-size: 1rem; width: 100%; }
@@ -154,12 +162,20 @@
         #reader { width: 100%; border: 1px solid var(--border-color-light); border-radius: 8px; overflow: hidden; }
         #sync-status { margin-top: 1rem; min-height: 24px; font-weight: 500; }
         .mobile-view { display: none; }
+        
+        #dose-stats h3 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+        .close-meal-form { position: absolute; top: 8px; right: 12px; font-size: 1.6rem; color: var(--border-color-light); cursor: pointer; font-weight: bold; line-height: 1; }
+        body.dark-mode .close-meal-form { color: var(--border-color-dark); }
+
 
         @media (max-width: 768px) {
             body { font-size: 15px; }
             .app-container { margin: 0.5rem auto; padding: 0.5rem; }
-            nav h1 { font-size: 1.5rem; }
+            .nav-left { gap: 0.8rem; }
+            nav h1 { font-size: 1.2rem; }
+            #dose-stats h3 { font-size: 0.9rem; }
             #schedule-view-container { grid-template-columns: 1fr; }
+            #schedule-sidebar { order: -1; }
             .schedule-item, .meal-med-form, #initial-dose-selection-view { padding: 1rem; }
             .time-text { font-size: 1.3rem; }
             .dose-name { font-size: 0.9rem; }
@@ -171,19 +187,25 @@
 <body>
     <div class="app-container">
         <nav>
-            <h1>Med Minder</h1>
+            <div class="nav-left">
+                <h1>Med Minder</h1>
+                <div id="dose-stats" class="hidden">
+                    <h3 id="doses-left-display"></h3>
+                </div>
+            </div>
             <div class="nav-controls">
                 <button id="sync-btn"><i class="fas fa-sync-alt"></i></button>
                 <button id="reset-btn">Reset</button>
                 <button id="theme-switcher-btn"><i class="fas fa-moon"></i></button>
             </div>
         </nav>
+        <hr class="divider">
         <main id="main-content">
             <div id="initial-dose-selection-view" class="hidden">
                 <h2>Setup Your Schedule</h2>
                 <div class="dose-count-setup form-group">
                     <label for="dose-count">How many Steroid doses per day?</label>
-                    <input type="number" id="dose-count" value="5" min="1">
+                    <input type="number" id="dose-count" value="4" min="1">
                 </div>
                 <h2>Select your first dose time:</h2>
                 <div id="hour-selection-list" class="hour-list"></div>
@@ -194,7 +216,8 @@
                     <ul id="schedule-list"></ul>
                 </div>
                 <div id="schedule-sidebar">
-                    <div class="meal-med-form">
+                    <div id="lunch-med-form" class="meal-med-form">
+                        <span class="close-meal-form">&times;</span>
                         <h3>Lunch Time Med</h3>
                         <div class="form-group">
                             <label for="lunch-time">When did you eat lunch?</label>
@@ -202,7 +225,8 @@
                         </div>
                         <button id="add-lunch-med-btn" class="primary-action">Add White Med</button>
                     </div>
-                     <div class="meal-med-form">
+                     <div id="dinner-med-form" class="meal-med-form">
+                        <span class="close-meal-form">&times;</span>
                         <h3>Dinner Time Med</h3>
                         <div class="form-group">
                             <label for="dinner-time">When did you eat dinner?</label>
@@ -254,6 +278,7 @@
         const scanBtn = document.getElementById('scan-btn');
         const readerDiv = document.getElementById('reader');
         const syncStatus = document.getElementById('sync-status');
+        const doseStats = document.getElementById('dose-stats');
         let schedule = [];
         let dataVersion = 0;
         let peer;
@@ -267,6 +292,9 @@
             };
             localStorage.setItem('medScheduleData', JSON.stringify(dataToSave));
             dataVersion = dataToSave.version;
+            if (conn && conn.open) {
+                conn.send({ type: 'sync_data', payload: { version: dataVersion, schedule: schedule } });
+            }
         };
 
         const loadSchedule = () => {
@@ -306,6 +334,10 @@
             peer.on('connection', (connection) => {
                 handleConnection(connection);
             });
+             peer.on('error', (err) => {
+                console.error("PeerJS error:", err);
+                syncStatus.textContent = `Error: ${err.type}`;
+            });
         };
 
         const handleConnection = (connection) => {
@@ -332,12 +364,14 @@
                         conn.send({ type: 'sync_data', payload: { version: dataVersion, schedule: schedule } });
                         break;
                     case 'sync_data':
-                        schedule = data.payload.schedule;
-                        dataVersion = data.payload.version;
-                        saveSchedule();
-                        renderSchedule();
-                        syncStatus.textContent = "Sync complete!";
-                        setTimeout(() => syncModal.classList.add('hidden'), 2000);
+                        if (data.payload.version > dataVersion) {
+                            schedule = data.payload.schedule;
+                            dataVersion = data.payload.version;
+                            localStorage.setItem('medScheduleData', JSON.stringify({version: dataVersion, schedule: schedule}));
+                            renderSchedule();
+                            syncStatus.textContent = "Sync complete!";
+                            setTimeout(() => syncModal.classList.add('hidden'), 2000);
+                        }
                         break;
                 }
             });
@@ -370,6 +404,12 @@
             schedule.sort((a, b) => a.time.localeCompare(b.time));
             scheduleList.innerHTML = '';
             const now = new Date();
+
+            const dosesLeftDisplay = document.getElementById('doses-left-display');
+            const steroidDoses = schedule.filter(d => d.type === 'steroid');
+            const dosesLeft = steroidDoses.filter(d => !d.taken).length;
+            
+            dosesLeftDisplay.textContent = `Doses left: ${dosesLeft}`;
 
             schedule.forEach(item => {
                 const li = document.createElement('li');
@@ -411,38 +451,65 @@
         };
 
         const recalculatePowerMeds = () => {
-            const existingPowerMeds = schedule.filter(d => d.type === 'power');
-            existingPowerMeds.sort((a, b) => a.time.localeCompare(b.time));
             schedule = schedule.filter(d => d.type !== 'power');
             const mainDoses = schedule.filter(d => d.type === 'steroid');
             if (mainDoses.length === 0) return;
+
             mainDoses.sort((a, b) => a.time.localeCompare(b.time));
+            
             const firstDose = mainDoses[0];
-            const lastDose = mainDoses[mainDoses.length - 1];
             const [firstHour, firstMin] = firstDose.time.split(':');
-            const firstPowerTime = new Date(); firstPowerTime.setHours(parseInt(firstHour) + 1, firstMin);
-            const [lastHour, lastMin] = lastDose.time.split(':');
-            const lastPowerTime = new Date(); lastPowerTime.setHours(lastHour, parseInt(lastMin) + 30);
-            const powerMed1 = {
-                id: existingPowerMeds.length > 0 ? existingPowerMeds[0].id : Date.now() + 1000,
-                time: `${String(firstPowerTime.getHours()).padStart(2, '0')}:${String(firstPowerTime.getMinutes()).padStart(2, '0')}`,
-                taken: existingPowerMeds.length > 0 ? existingPowerMeds[0].taken : false,
-                name: "Power Med", type: "power"
+            const firstDoseTime = new Date();
+            firstDoseTime.setHours(parseInt(firstHour), parseInt(firstMin), 0, 0);
+            const firstPowerMedTime = new Date(firstDoseTime.getTime() + 60 * 60 * 1000);
+
+            const firstPowerMed = {
+                id: Date.now() + 2000,
+                time: `${String(firstPowerMedTime.getHours()).padStart(2, '0')}:${String(firstPowerMedTime.getMinutes()).padStart(2, '0')}`,
+                taken: false,
+                name: "Power Med", 
+                type: "power"
             };
-            const powerMed2 = {
-                id: existingPowerMeds.length > 1 ? existingPowerMeds[1].id : Date.now() + 2000,
-                time: `${String(lastPowerTime.getHours()).padStart(2, '0')}:${String(lastPowerTime.getMinutes()).padStart(2, '0')}`,
-                taken: existingPowerMeds.length > 1 ? existingPowerMeds[1].taken : false,
-                name: "Power Med", type: "power"
-            };
-            schedule.push(powerMed1, powerMed2);
+            schedule.push(firstPowerMed);
+
+            if (mainDoses.length > 1) {
+                const lastDose = mainDoses[mainDoses.length - 1];
+                const [lastHour, lastMin] = lastDose.time.split(':');
+                const lastDoseTime = new Date();
+                lastDoseTime.setHours(parseInt(lastHour), parseInt(lastMin), 0, 0);
+
+                let lastPowerMedTime = new Date(lastDoseTime.getTime() + 60 * 60 * 1000);
+
+                if (lastPowerMedTime.getDate() !== lastDoseTime.getDate()) {
+                    lastPowerMedTime.setHours(23, 59, 0, 0);
+                }
+                
+                const lastPowerMed = {
+                    id: Date.now() + 3000,
+                    time: `${String(lastPowerMedTime.getHours()).padStart(2, '0')}:${String(lastPowerMedTime.getMinutes()).padStart(2, '0')}`,
+                    taken: false,
+                    name: "Power Med", 
+                    type: "power"
+                };
+                schedule.push(lastPowerMed);
+            }
         };
 
         const generateInitialSchedule = (doseCount, startHour) => {
             schedule = [];
+            let intervalHours;
+            switch (doseCount) {
+                case 1: intervalHours = 0; break;
+                case 2: intervalHours = 7; break;
+                case 3: intervalHours = 5; break;
+                case 4: intervalHours = 4; break;
+                case 5: intervalHours = 3; break;
+                default: intervalHours = 2; 
+            }
+
             for (let i = 0; i < doseCount; i++) {
                 const doseTime = new Date();
-                doseTime.setHours(startHour + (i * 3), 0);
+                doseTime.setHours(startHour + (i * intervalHours), 0, 0, 0);
                 schedule.push({ id: Date.now() + i, time: `${String(doseTime.getHours()).padStart(2, '0')}:00`, taken: false, name: "Steroid", type: "steroid" });
             }
             recalculatePowerMeds();
@@ -457,13 +524,14 @@
             if (editedIndex === -1) return;
             const editedDose = schedule[editedIndex];
             editedDose.time = newTime;
-            editedDose.taken = true;
+            
             const [newHour, newMinute] = newTime.split(':');
             const baseTime = new Date(); baseTime.setHours(newHour, newMinute, 0, 0);
             const subsequentUntaken = schedule.filter((dose, index) => index > editedIndex && !dose.taken && dose.type === 'steroid');
-            const otherDoses = schedule.filter(dose => !subsequentUntaken.includes(dose));
+            const otherDoses = schedule.filter(dose => !subsequentUntaken.includes(dose) && dose.id !== editedDoseId);
+            
             const rescheduled = rescheduleCore(subsequentUntaken, baseTime, true);
-            schedule = [...otherDoses, ...rescheduled];
+            schedule = [editedDose, ...otherDoses, ...rescheduled];
             recalculatePowerMeds();
             saveSchedule();
             renderSchedule();
@@ -472,26 +540,37 @@
         const showInitialDoseSelectionView = (show = true) => {
             initialDoseSelectionView.classList.toggle('hidden', !show);
             scheduleViewContainer.classList.toggle('hidden', show);
+            doseStats.classList.toggle('hidden', show);
         };
 
         const rescheduleCore = (dosesToPlan, baseTime, isCascading = false) => {
             if (dosesToPlan.length === 0) return dosesToPlan;
-            const standardIntervalMs = 3 * 60 * 60 * 1000;
+            let standardIntervalHours;
+            const totalDoses = schedule.filter(d => d.type === 'steroid').length;
+             switch (totalDoses) {
+                case 1: standardIntervalHours = 0; break;
+                case 2: standardIntervalHours = 7; break;
+                case 3: standardIntervalHours = 5; break;
+                case 4: standardIntervalHours = 4; break;
+                case 5: standardIntervalHours = 3; break;
+                default: standardIntervalHours = 2; 
+            }
+            const standardIntervalMs = standardIntervalHours * 60 * 60 * 1000;
             let intervalMs = standardIntervalMs;
+            
             const firstDoseOffset = isCascading ? standardIntervalMs : 0;
             const potentialEndTime = new Date(baseTime.getTime() + firstDoseOffset + (dosesToPlan.length - 1) * standardIntervalMs);
 
             if (potentialEndTime.getDate() > baseTime.getDate()) {
-                const midnight = new Date(baseTime); midnight.setHours(23, 59, 59, 999);
+                const midnight = new Date(baseTime);
+                midnight.setHours(23, 59, 59, 999);
                 const msUntilMidnight = midnight.getTime() - baseTime.getTime();
                 const numDoses = dosesToPlan.length;
-
-                if (!isCascading) {
-                    intervalMs = numDoses > 1 ? msUntilMidnight / (numDoses - 1) : 0;
-                } else {
-                    intervalMs = numDoses > 0 ? msUntilMidnight / numDoses : 0;
+                if (msUntilMidnight > 0 && numDoses > 0) {
+                     intervalMs = msUntilMidnight / (isCascading ? numDoses : (numDoses -1) || 1);
                 }
             }
+
             dosesToPlan.forEach((dose, index) => {
                 const offset = isCascading ? (index + 1) * intervalMs : index * intervalMs;
                 const futureTime = new Date(baseTime.getTime() + offset);
@@ -505,7 +584,7 @@
             const untakenSteroidDoses = schedule.filter(d => !d.taken && d.type === 'steroid');
             if (untakenSteroidDoses.length === 0) return;
 
-            const rescheduled = rescheduleCore(untakenSteroidDoses, new Date());
+            const rescheduled = rescheduleCore(untakenSteroidDoses, new Date(), true);
             schedule = [...takenDoses, ...otherIndependentDoses, ...rescheduled];
             recalculatePowerMeds();
             saveSchedule();
@@ -527,6 +606,25 @@
                 });
                 hourSelectionList.appendChild(hourItem);
             }
+             document.querySelectorAll('.close-meal-form').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const form = e.target.parentElement;
+                    form.classList.add('hidden');
+                    if (form.id === 'lunch-med-form') {
+                        localStorage.setItem('lunchFormDismissed', 'true');
+                    } else if (form.id === 'dinner-med-form') {
+                        localStorage.setItem('dinnerFormDismissed', 'true');
+                    }
+                });
+            });
+
+            if (localStorage.getItem('lunchFormDismissed') === 'true') {
+                document.getElementById('lunch-med-form').classList.add('hidden');
+            }
+            if (localStorage.getItem('dinnerFormDismissed') === 'true') {
+                document.getElementById('dinner-med-form').classList.add('hidden');
+            }
+
             if (loadSchedule() && schedule.length > 0) {
                 renderSchedule();
                 showInitialDoseSelectionView(false);
@@ -544,7 +642,7 @@
         });
         closeModalBtn.addEventListener('click', () => {
             if(html5QrCode && html5QrCode.isScanning){
-                html5QrCode.stop();
+                html5QrCode.stop().catch(err => console.error("Error stopping scanner:", err));
             }
             syncModal.classList.add('hidden');
         });
@@ -569,16 +667,21 @@
                 }
             } else if (e.target.classList.contains('edit-time-btn')) {
                 const timeDisplay = parentItem.querySelector('.time-display');
+                const timeText = timeDisplay.querySelector('.time-text');
+                const originalHTML = timeDisplay.innerHTML;
                 const input = document.createElement('input');
                 input.type = 'time'; input.value = dose.time; input.className = 'time-edit-input';
-                timeDisplay.style.display = 'none';
-                timeDisplay.parentElement.insertBefore(input, timeDisplay.nextSibling);
+                timeDisplay.innerHTML = '';
+                timeDisplay.appendChild(input);
                 input.focus();
                 const saveTime = () => {
                     if (dose.type === 'steroid') { updateAndReschedule(id, input.value); } 
                     else { dose.time = input.value; saveSchedule(); renderSchedule(); }
                 };
-                input.addEventListener('blur', saveTime);
+                input.addEventListener('blur', () => {
+                     timeDisplay.innerHTML = originalHTML;
+                     saveTime();
+                });
                 input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
             }
         });
@@ -590,7 +693,17 @@
             saveTheme(theme);
         });
 
-        resetBtn.addEventListener('click', () => showInitialDoseSelectionView(true));
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset your schedule? This will also bring back any hidden meal-time med forms.')) {
+                 localStorage.removeItem('medScheduleData');
+                 localStorage.removeItem('lunchFormDismissed');
+                 localStorage.removeItem('dinnerFormDismissed');
+                 schedule = [];
+                 document.getElementById('lunch-med-form').classList.remove('hidden');
+                 document.getElementById('dinner-med-form').classList.remove('hidden');
+                 showInitialDoseSelectionView(true);
+            }
+        });
         
         addDinnerMedBtn.addEventListener('click', () => {
             if (dinnerTimeInput.value) {
@@ -609,7 +722,6 @@
         init();
     });
 </script>
-
 
 </body>
 </html>
